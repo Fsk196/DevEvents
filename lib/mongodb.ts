@@ -1,13 +1,10 @@
-import mongoose, { Mongoose } from "mongoose";
+import mongoose from "mongoose";
 
-/**
- * Type definition for the Mongoose connection cache
- * Used to store the connection and promise across hot reloads in development
- */
-interface MongooseCache {
-  conn: Mongoose | null;
-  promise: Promise<Mongoose> | null;
-}
+// Define the connection cache type
+type MongooseCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
 
 // Extend the global object to include our mongoose cache
 declare global {
@@ -17,16 +14,7 @@ declare global {
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local"
-  );
-}
-
-/**
- * Initialize the cache on the global object to persist across hot reloads in development
- * In production, this will be a new object each time the server starts
- */
+// Initialize the cache on the global object to persist across hot reloads in development
 let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
 
 if (!global.mongoose) {
@@ -36,11 +24,9 @@ if (!global.mongoose) {
 /**
  * Establishes a connection to MongoDB using Mongoose.
  * Caches the connection to prevent multiple connections during development hot reloads.
- *
  * @returns Promise resolving to the Mongoose instance
- * @throws Error if MONGODB_URI is not defined or connection fails
  */
-async function connectDB(): Promise<Mongoose> {
+async function connectDB(): Promise<typeof mongoose> {
   // Return existing connection if available
   if (cached.conn) {
     return cached.conn;
@@ -48,7 +34,13 @@ async function connectDB(): Promise<Mongoose> {
 
   // Return existing connection promise if one is in progress
   if (!cached.promise) {
-    const options: mongoose.ConnectOptions = {
+    // Validate MongoDB URI exists
+    if (!MONGODB_URI) {
+      throw new Error(
+        "Please define the MONGODB_URI environment variable inside .env.local"
+      );
+    }
+    const options = {
       bufferCommands: false, // Disable Mongoose buffering
     };
 
